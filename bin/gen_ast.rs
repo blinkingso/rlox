@@ -27,7 +27,7 @@ fn main() {
     );
 }
 
-fn define_ast(output_dir: &str, name: &str, types: Vec<&'static str>) {
+fn define_ast(output_dir: &str, name: &str, _types: Vec<&'static str>) {
     let output_dir = Path::new(output_dir);
     if !output_dir.exists() {
         create_dir_all(output_dir).expect(
