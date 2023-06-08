@@ -1,0 +1,20 @@
+[package]
+name = "rlox"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+# members = ["./gen_ast"]
+
+[dependencies]
+lazy_static = "1.4.0"
+
+
+
+# [dependencies.gen_ast]
+# path = "./gen_ast"
+
+
+[[bin]]
+name = "gen_ast"
+path = "bin/gen_ast.rs"

@@ -1,0 +1,9 @@
+()
+{}
+var a = "asb";
+/***test comments***/
+/*comments 1 /**nested comments 2*/*/
+/* new line comments
+*asdf
+3333comments
+*/
