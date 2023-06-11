@@ -1,7 +1,6 @@
 use crate::{
     expr::*,
     literal::Object,
-    token::{Token, TokenType},
 };
 
 struct AstPrinter;
