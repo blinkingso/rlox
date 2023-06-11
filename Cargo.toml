@@ -3,5 +3,8 @@ name = "rlox"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = ["rlox_derive_lib"]
+
 [dependencies]
 rlox_derive_lib = { version = "0.1.0", path = "rlox_derive_lib" }

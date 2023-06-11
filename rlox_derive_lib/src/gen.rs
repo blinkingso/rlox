@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
-use proc_macro2::Span;
+use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{
-    parse::Parse, parse_macro_input, spanned::Spanned, token::Comma, Expr, ExprArray, Ident, Lit,
+    parse::Parse, parse_macro_input, spanned::Spanned, token::Comma, Expr, ExprArray, Lit, LitStr,
     Type,
 };
 
@@ -31,7 +31,14 @@ impl Parse for ManagerExprItem {
         let output_dir: Lit = input.parse()?;
         input.parse::<Comma>()?;
         // parse base_name ident
-        let base_name: Ident = input.parse()?;
+        let base_name: Lit = input.parse()?;
+        let base_name_str = if let Lit::Str(lit) = base_name {
+            lit.value()
+        } else {
+            panic!("base name should be literal!");
+        };
+        let base_name = Ident::new(base_name_str.as_str(), Span::call_site());
+        let base_name_ty = syn::parse_str(base_name_str.as_str())?;
         input.parse::<Comma>()?;
         // parse types
         let classes: ExprArray = input.parse()?;
@@ -47,8 +54,9 @@ impl Parse for ManagerExprItem {
                     let class_name = class_name.trim();
                     let fields = fields.trim();
                     let fields = fields.split(",");
-                    let mut field_items = vec![];
+                    let mut field_items: Vec<FieldItem> = vec![];
                     for field in fields.into_iter() {
+                        let field = field.trim();
                         let (field_ty, field_name) =
                             field.split_once(" ").ok_or(syn::Error::new(
                                 class.span(),
@@ -68,12 +76,13 @@ impl Parse for ManagerExprItem {
                         class_name_ty: syn::parse_str(class_name)?,
                         fields: field_items,
                     });
+                } else {
+                    panic!("classes definition must be string literal!");
                 }
             } else {
                 panic!("classes definition must be string literal!");
             }
         }
-        let base_name_ty: Type = syn::parse_str(base_name.to_string().as_str())?;
         Ok(ManagerExprItem {
             output_dir,
             base_name,
@@ -93,11 +102,12 @@ pub(crate) fn gen_ast(input: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
     println!("{}", base_name.to_string());
     let output = quote! {
-        use crate::literal::*;
-        use crate::token::*;
+        // use rlox::literal::*;
+        // use rlox::token::*;
 
         pub enum #base_name {
             // #(#enum_types),*
+            Str
         }
     };
     output.into()

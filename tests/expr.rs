@@ -4,12 +4,12 @@ use rlox_derive_lib::define_ast;
 fn test_expr() {
     define_ast! {
         "src",
-        Expr,
+        "Expr",
         [
-        "Binary   : Expr left, Token operator",
-        "Expr right", "Grouping : Expr expression",
-        "Literal  : Object value",
-        "Unary    : Token operator, Expr right"
-        ]
-    }
+            "Binary   : Expr left, Token operator, Expr right",
+            "Grouping : Expr expression",
+            "Literal  : Object value",
+            "Unary    : Token operator, Expr right",
+         ]
+    };
 }
