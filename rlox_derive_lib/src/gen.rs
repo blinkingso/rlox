@@ -1,9 +1,8 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{
-    parse::Parse, parse_macro_input, spanned::Spanned, token::Comma, Expr, ExprArray, Lit, LitStr,
-    Type,
+    parse::Parse, parse_macro_input, spanned::Spanned, token::Comma, Expr, ExprArray, Lit, Type,
 };
 
 pub(crate) struct ManagerExprItem {
@@ -16,6 +15,8 @@ pub(crate) struct ManagerExprItem {
 pub(crate) struct ClassItem {
     class_name: Ident,
     class_name_ty: Type,
+    struct_name: Ident,
+    struct_name_ty: Type,
     fields: Vec<FieldItem>,
 }
 
@@ -54,6 +55,7 @@ impl Parse for ManagerExprItem {
                     let class_name = class_name.trim();
                     let fields = fields.trim();
                     let fields = fields.split(",");
+                    let struct_name = format!("{}{}", class_name, base_name);
                     let mut field_items: Vec<FieldItem> = vec![];
                     for field in fields.into_iter() {
                         let field = field.trim();
@@ -74,6 +76,8 @@ impl Parse for ManagerExprItem {
                     class_items.push(ClassItem {
                         class_name: Ident::new(class_name, Span::call_site()),
                         class_name_ty: syn::parse_str(class_name)?,
+                        struct_name: Ident::new(struct_name.as_str(), Span::call_site()),
+                        struct_name_ty: syn::parse_str(struct_name.as_str())?,
                         fields: field_items,
                     });
                 } else {
@@ -98,17 +102,114 @@ pub(crate) fn gen_ast(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as ManagerExprItem);
     let enum_types = types
         .iter()
-        .map(|ClassItem { class_name, .. }| quote!(quote!(#class_name)(quote!(#class_name)quote!(#base_name))))
+        .map(
+            |ClassItem {
+                 class_name,
+                 struct_name,
+                 ..
+             }| quote!(#class_name(Box<#struct_name>)),
+        )
         .collect::<Vec<_>>();
-    println!("{}", base_name.to_string());
-    let output = quote! {
-        // use rlox::literal::*;
-        // use rlox::token::*;
+
+    // gen enum Expr
+    let mut output = quote! {
+        use crate::literal::*;
+        use crate::token::*;
 
         pub enum #base_name {
-            // #(#enum_types),*
-            Str
+            #(#enum_types),*
         }
     };
+
+    // gen struct
+    types.iter().for_each(
+        |ClassItem {
+             struct_name,
+             fields,
+             ..
+         }| {
+            let fields = fields
+                .iter()
+                .map(
+                    |FieldItem {
+                         field_name,
+                         field_ty_name,
+                         ..
+                     }| quote!(pub #field_name: Box<#field_ty_name>),
+                )
+                .collect::<Vec<_>>();
+            output.extend(quote! {
+                pub struct #struct_name {
+                    #(#fields),*
+                }
+            });
+        },
+    );
+
+    // Visitor trait...
+    define_visitor(&mut output, &base_name, &types);
     output.into()
+}
+
+fn define_visitor(
+    output: &mut proc_macro2::TokenStream,
+    base_name: &Ident,
+    types: &Vec<ClassItem>,
+) {
+    let base_name_str = base_name.to_string();
+    let base_name_ident = format_ident!("{}", base_name_str.to_lowercase());
+    let methods = types
+        .iter()
+        .map(
+            |ClassItem {
+                 class_name,
+                 struct_name_ty,
+                 ..
+             }| {
+                let method_name = format_ident!(
+                    "visit_{}_{}",
+                    class_name.to_string().to_lowercase(),
+                    base_name_str.to_lowercase()
+                );
+                quote! {fn #method_name(&self, #base_name_ident: Box<#struct_name_ty>) -> std::io::Result<R>;}
+            },
+        )
+        .collect::<Vec<_>>();
+    let visitor = quote! {
+        pub trait Visitor<R> {
+            #(#methods)*
+        }
+    };
+    output.extend(visitor);
+
+    let impls = types
+        .iter()
+        .map(
+            |ClassItem {
+                 class_name,
+                 struct_name,
+                 ..
+             }| {
+                let call_visitor = format_ident!(
+                    "visit_{}_{}",
+                    class_name.to_string().to_lowercase(),
+                    base_name_str.to_lowercase(),
+                );
+                quote! {
+
+                    impl #struct_name {
+                        pub fn accept<R>(self:Box<Self>, visitor: Box<&dyn Visitor<R>>) -> std::io::Result<R> {
+                            visitor.#call_visitor(self)
+                        }
+                    }
+
+                }
+            },
+        )
+        .collect::<Vec<_>>();
+
+    output.extend(quote! {
+
+        #(#impls)*
+    });
 }
