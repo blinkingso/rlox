@@ -1,11 +1,13 @@
-// use rlox_macros::define_ast;
+use crate::error::LoxError;
+use crate::literal::Object;
+use crate::token::Token;
 
-// define_ast! {
-//     Expr,
-//     [
-//         "Binary : Expr left, Token operator, Expr right",
-//         "Grouping : Expr expression",
-//         "Literal : Object value",
-//         "Unary : Token operator, Expr right"
-//         ]
-// }
+rlox_macros::define_ast! {
+    "Expr",
+    [
+        "Binary   : Expr left, Token operator, Expr right",
+        "Grouping : Expr expression",
+        "Literal  : Object value",
+        "Unary    : Token operator, Expr right"
+    ]
+}

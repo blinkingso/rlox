@@ -57,6 +57,7 @@ trait Expr<R> {
 }
 
 struct AstPrinter;
+#[allow(dead_code)]
 impl AstPrinter {
     fn print(&self, expr: Box<dyn Expr<String>>) -> Result<String, LoxError> {
         expr.accept(Box::new(self))

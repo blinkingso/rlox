@@ -7,4 +7,6 @@ edition = "2021"
 members = ["rlox_macros"]
 
 [dependencies]
-# rlox_macros = { version = "0.1.0", path = "rlox_macros" }
+
+[dependencies.rlox_macros]
+path = "rlox_macros"
