@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["rlox_derive_lib"]
+members = ["rlox_macros"]
 
 [dependencies]
-rlox_derive_lib = { version = "0.1.0", path = "rlox_derive_lib" }
+# rlox_macros = { version = "0.1.0", path = "rlox_macros" }

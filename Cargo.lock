@@ -23,12 +23,9 @@ dependencies = [
 [[package]]
 name = "rlox"
 version = "0.1.0"
-dependencies = [
- "rlox_derive_lib",
-]
 
 [[package]]
-name = "rlox_derive_lib"
+name = "rlox_macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
