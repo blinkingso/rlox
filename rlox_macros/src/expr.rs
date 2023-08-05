@@ -107,17 +107,3 @@ impl Parse for ExprAst {
         })
     }
 }
-
-#[test]
-fn test_expr_ast() {
-    let ast: ExprAst = syn::parse_quote!(
-        Expr,
-        [
-            "Binary   : Expr left, Token operator, Expr right",
-            "Grouping : Expr expression",
-            "Literal  : Object value",
-            "Unary    : Token operator, Expr right"
-        ]
-    );
-    println!("{:?}", ast);
-}

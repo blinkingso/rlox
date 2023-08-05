@@ -4,9 +4,6 @@ use syn::parse_macro_input;
 
 use crate::expr::ExprAst;
 
-extern crate proc_macro;
-extern crate proc_macro2;
-
 mod expr;
 
 #[proc_macro]
@@ -91,11 +88,11 @@ pub fn define_ast(input: TokenStream) -> TokenStream {
             output.extend(quote! {
                     pub struct #ident<R> {
                         #(
-                            pub #generic_field_names: Box<dyn #generic_field_tys<R>>
-                        ),*
+                            pub #generic_field_names: Box<dyn #generic_field_tys<R>>,
+                        )*
                         #(
-                            pub #none_generic_field_names: #none_generic_field_tys
-                        ),*
+                            pub #none_generic_field_names: #none_generic_field_tys,
+                        )*
                     }
 
                     impl<R> #base_ident<R> for #ident<R> {
@@ -108,8 +105,8 @@ pub fn define_ast(input: TokenStream) -> TokenStream {
             output.extend(quote! {
                 pub struct #ident {
                     #(
-                        pub #none_generic_field_names: #none_generic_field_tys
-                    ),*
+                        pub #none_generic_field_names: #none_generic_field_tys,
+                    )*
                 }
 
                 impl<R> #base_ident<R> for #ident {
