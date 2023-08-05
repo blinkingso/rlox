@@ -90,6 +90,7 @@ pub fn define_ast(input: TokenStream) -> TokenStream {
                         #(
                             pub #generic_field_names: Box<dyn #generic_field_tys<R>>,
                         )*
+
                         #(
                             pub #none_generic_field_names: #none_generic_field_tys,
                         )*
