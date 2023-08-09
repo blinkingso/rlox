@@ -6,21 +6,17 @@ use crate::literal::*;
 struct AstPrinter;
 
 impl AstPrinter {
-    fn print(&self, expr: Box<dyn Expr<String>>) -> Result<String, LoxError> {
-        expr.accept(Box::new(self))
+    fn print(&self, expr: Box<dyn Expr>) -> Result<String, LoxError> {
+        expr.accept::<String>(Box::new(self))
     }
 
-    fn parenthesize(
-        &self,
-        name: &str,
-        exprs: &[&Box<dyn Expr<String>>],
-    ) -> Result<String, LoxError> {
+    fn parenthesize(&self, name: &str, exprs: &[&Box<dyn Expr>]) -> Result<String, LoxError> {
         let mut builder = String::new();
         builder.push('(');
         builder.push_str(name);
         for expr in exprs {
             builder.push(' ');
-            let s = expr.accept(Box::new(self))?;
+            let s = expr.accept::<String>(Box::new(self))?;
             builder.push_str(s.as_str());
         }
         builder.push(')');
@@ -28,8 +24,10 @@ impl AstPrinter {
     }
 }
 
-impl Visitor<String> for AstPrinter {
-    fn visit_binary(&self, expr: &Binary<String>) -> Result<String, LoxError> {
+impl Visitor for AstPrinter {
+    type Res = String;
+
+    fn visit_binary(&self, expr: &Binary) -> Result<String, LoxError> {
         let Binary {
             left,
             operator,
@@ -38,7 +36,7 @@ impl Visitor<String> for AstPrinter {
         self.parenthesize(&operator.lexeme, &[left, right])
     }
 
-    fn visit_grouping(&self, expr: &Grouping<String>) -> Result<String, LoxError> {
+    fn visit_grouping(&self, expr: &Grouping) -> Result<String, LoxError> {
         let Grouping { expression } = expr;
         self.parenthesize("group", &[expression])
     }
@@ -50,7 +48,7 @@ impl Visitor<String> for AstPrinter {
         Ok(expr.value.to_string())
     }
 
-    fn visit_unary(&self, expr: &Unary<String>) -> Result<String, LoxError> {
+    fn visit_unary(&self, expr: &Unary) -> Result<String, LoxError> {
         let Unary { operator, right } = expr;
         self.parenthesize(&operator.lexeme, &[right])
     }
@@ -61,7 +59,7 @@ fn test_printer() {
     use crate::literal::*;
     use crate::token::*;
 
-    let expression: Binary<String> = Binary {
+    let expression: Binary = Binary {
         left: Box::new(Unary {
             operator: Token::new(TokenType::Minus, String::from("-"), None, 1),
             right: Box::new(Literal {

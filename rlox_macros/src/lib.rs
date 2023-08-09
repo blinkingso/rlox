@@ -15,108 +15,74 @@ pub fn define_ast(input: TokenStream) -> TokenStream {
     let structs = &expr_ast.structs;
 
     // define `Visitor` trait
-    let visitor_generic_method_names = structs
+    let visit_method_names = structs
         .iter()
-        .filter(|s| s.is_generic())
         .map(|s| (format_ident!("visit_{}", s.get_ident_name_lowercase())))
         .collect::<Vec<_>>();
-    let visitor_generic_idents = structs
-        .iter()
-        .filter(|s| s.is_generic())
-        .map(|s| s.ident.clone())
-        .collect::<Vec<_>>();
-    let visitor_none_generic_method_names = structs
-        .iter()
-        .filter(|s| !s.is_generic())
-        .map(|s| (format_ident!("visit_{}", s.get_ident_name_lowercase())))
-        .collect::<Vec<_>>();
-    let visitor_none_generic_idents = structs
-        .iter()
-        .filter(|s| !s.is_generic())
-        .map(|s| s.ident.clone())
-        .collect::<Vec<_>>();
+    let visit_idents = structs.iter().map(|s| s.ident.clone()).collect::<Vec<_>>();
 
     output.extend(quote! {
-        pub trait Visitor<R> {
+        pub trait Visitor {
+            type Res;
             #(
-                fn #visitor_generic_method_names(&self, expr: &#visitor_generic_idents<R>) -> Result<R, LoxError>;
-            )*
-
-            #(
-                fn #visitor_none_generic_method_names(&self, expr: &#visitor_none_generic_idents) -> Result<R, LoxError>;
+                fn #visit_method_names(&self, expr: &#visit_idents) -> Result<Self::Res, LoxError>;
             )*
         }
     });
 
     // define `Expr` trait
     output.extend(quote! {
-        pub trait #base_ident<R> {
-            fn accept(&self, visitor: Box<&dyn Visitor<R>>) -> Result<R, LoxError>;
+        pub trait #base_ident {
+            fn accept(&self, visitor: Box<&dyn Visitor>) -> Result<Visitor::Res, LoxError>;
         }
     });
 
     // define structs.
     structs.iter().for_each(|s| {
         let ident = &s.ident;
-        let visitor_name = format_ident!("visit_{}", s.get_ident_name_lowercase());
-        let generic_field_names = s
+        let visit_method_name = format_ident!("visit_{}", s.get_ident_name_lowercase());
+        let trait_field_names = s
             .fields
             .iter()
-            .filter(|f| f.is_generic())
+            .filter(|f| f.is_trait)
             .map(|f| f.name.clone())
             .collect::<Vec<_>>();
-        let generic_field_tys = s
+        let trait_field_tys = s
             .fields
             .iter()
-            .filter(|f| f.is_generic())
-            .map(|f| f.ty.clone())
-            .collect::<Vec<_>>();
-        let none_generic_field_names = s
-            .fields
-            .iter()
-            .filter(|f| !f.is_generic())
-            .map(|f| f.name.clone())
-            .collect::<Vec<_>>();
-        let none_generic_field_tys = s
-            .fields
-            .iter()
-            .filter(|f| !f.is_generic())
+            .filter(|f| f.is_trait)
             .map(|f| f.ty.clone())
             .collect::<Vec<_>>();
 
-        if s.is_generic() {
-            output.extend(quote! {
-                    pub struct #ident<R> {
-                        #(
-                            pub #generic_field_names: Box<dyn #generic_field_tys<R>>,
-                        )*
+        let field_names = s
+            .fields
+            .iter()
+            .filter(|f| !f.is_trait)
+            .map(|f| f.name.clone())
+            .collect::<Vec<_>>();
+        let field_tys = s
+            .fields
+            .iter()
+            .filter(|f| !f.is_trait)
+            .map(|f| f.ty.clone())
+            .collect::<Vec<_>>();
 
-                        #(
-                            pub #none_generic_field_names: #none_generic_field_tys,
-                        )*
-                    }
-
-                    impl<R> #base_ident<R> for #ident<R> {
-                        fn accept(&self, visitor: Box<&dyn Visitor<R>>) -> Result<R, LoxError> {
-                            visitor.#visitor_name(self)
-                        }
-                    }
-            });
-        } else {
-            output.extend(quote! {
+        output.extend(quote! {
                 pub struct #ident {
                     #(
-                        pub #none_generic_field_names: #none_generic_field_tys,
+                        pub #trait_field_names: Box<dyn #trait_field_tys>,
+                    )*
+                    #(
+                        pub #field_names: #field_tys,
                     )*
                 }
 
-                impl<R> #base_ident<R> for #ident {
-                    fn accept(&self, visitor: Box<&dyn Visitor<R>>) -> Result<R, LoxError> {
-                        visitor.#visitor_name(self)
+                impl #base_ident for #ident {
+                    fn accept(&self, visitor: Box<&dyn Visitor>) -> Result<Visitor::Res, LoxError> {
+                        visitor.#visit_method_name(self)
                     }
                 }
-            });
-        }
+        });
     });
     output.into()
 }
